@@ -4,8 +4,6 @@ import boto3
 from datetime import datetime
 from urllib.parse import unquote_plus
 
-s3 = boto3.client("s3")
-cw = boto3.client("cloudwatch")
 
 REQUIRED_FIELDS = {
     "page_view":    ["user_id", "session_id", "page_url", "page_type",
@@ -35,6 +33,7 @@ def validate_record(rec):
 
 def put_metric(name, value, unit="Count"):
     try:
+        cw = boto3.client("cloudwatch")
         cw.put_metric_data(
             Namespace="ShopStream/Ingesta",
             MetricData=[{"MetricName": name, "Value": value, "Unit": unit}]
@@ -44,6 +43,7 @@ def put_metric(name, value, unit="Count"):
 
 
 def lambda_handler(event, context):
+    s3 = boto3.client("s3")
     for rec in event["Records"]:
         bucket = rec["s3"]["bucket"]["name"]
         key    = unquote_plus(rec["s3"]["object"]["key"])
@@ -51,16 +51,14 @@ def lambda_handler(event, context):
 
         print(f"Procesando: s3://{bucket}/{key}")
 
-        # Descargar objeto
         obj  = s3.get_object(Bucket=bucket, Key=key)
         body = obj["Body"].read()
         if key.endswith(".gz"):
             body = gzip.decompress(body)
 
-        # Procesar línea por línea sin guardar todo en memoria
-        valid_count   = 0
-        invalid_count = 0
-        invalid_sample = []  # solo guardamos muestra de 100 invalidos
+        valid_count    = 0
+        invalid_count  = 0
+        invalid_sample = []
 
         for line in body.decode("utf-8").split("\n"):
             line = line.strip()
@@ -80,16 +78,13 @@ def lambda_handler(event, context):
                 if len(invalid_sample) < 100:
                     invalid_sample.append({"raw": line[:200], "error": str(e)})
 
-        # Liberar memoria
         del body
 
-        # Métricas CloudWatch
         put_metric("ArchivosProcessados", 1)
         put_metric("RegistrosValidos",    valid_count)
         put_metric("RegistrosInvalidos",  invalid_count)
         put_metric("TamanioBytes",        size, "Bytes")
 
-        # Guardar muestra de inválidos en quarantine/
         if invalid_sample:
             qkey    = key.replace("raw/", "quarantine/", 1) + ".errors.json"
             meta    = {"error_count": invalid_count, "source_key": key,
