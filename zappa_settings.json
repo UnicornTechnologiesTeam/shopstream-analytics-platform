@@ -1,0 +1,19 @@
+{
+    "dev": {
+        "app_function": "app.app",
+        "aws_region": "us-east-1",
+        "profile_name": "default",
+        "s3_bucket": "shopstream-raw-data-dg",
+        "lambda_description": "ShopStream API REST",
+        "runtime": "python3.9",
+        "timeout_seconds": 30,
+        "manage_roles": false,
+        "role_arn": "arn:aws:iam::195438647829:role/LabRole",
+        "environment_variables": {
+            "DB_HOST": "shopstream-dw.cc9uttu2shgi.us-east-1.rds.amazonaws.com",
+            "DB_NAME": "shopstream_dw",
+            "DB_USER": "postgres",
+            "DB_PASS": "shopstream1234"
+        }
+    }
+}

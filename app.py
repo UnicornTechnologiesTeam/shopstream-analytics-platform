@@ -4,10 +4,10 @@ import os
 
 app = Flask(__name__)
 
-DB_HOST = "shopstream-dw.cc9uttu2shgi.us-east-1.rds.amazonaws.com"
-DB_NAME = "shopstream_dw"
-DB_USER = "postgres"
-DB_PASS = "shopstream1234"
+DB_HOST = os.environ.get("DB_HOST", "shopstream-dw.cc9uttu2shgi.us-east-1.rds.amazonaws.com")
+DB_NAME = os.environ.get("DB_NAME", "shopstream_dw")
+DB_USER = os.environ.get("DB_USER", "postgres")
+DB_PASS = os.environ.get("DB_PASS", "shopstream1234")
 
 def get_conn():
     return psycopg2.connect(
